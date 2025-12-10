@@ -1,0 +1,14 @@
+[project]
+name = "label-centerlines"
+version = "2022.7.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "click",
+    "Fiona>=1.7.0",
+    "networkx>=2.1",
+    "scipy>=0.17",
+    "Shapely>=1.5",
+    "tqdm",
+]
