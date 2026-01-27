@@ -1,12 +1,13 @@
-from itertools import combinations
 import logging
-import networkx as nx
-from networkx.exception import NetworkXNoPath
-import numpy as np
 import operator
-from scipy.spatial import Voronoi
+from itertools import combinations
+
+import networkx as nx
+import numpy as np
+from networkx.exception import NetworkXNoPath
 from scipy.ndimage import gaussian_filter1d
-from shapely.geometry import LineString, MultiLineString, Point, MultiPoint
+from scipy.spatial import Voronoi
+from shapely.geometry import LineString, MultiLineString, MultiPoint, Point
 
 from label_centerlines.exceptions import CenterlineError
 

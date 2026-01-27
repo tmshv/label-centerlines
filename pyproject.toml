@@ -1,14 +1,30 @@
 [project]
 name = "label-centerlines"
-version = "2022.7.0"
+version = "2026.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "click",
-    "Fiona>=1.7.0",
+    "fiona>=1.10.0",
     "networkx>=2.1",
     "scipy>=0.17",
-    "Shapely>=1.5",
+    "shapely>=1.8",
     "tqdm",
 ]
+
+[build-system]
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
+
+[project.scripts]
+label_centerlines = "label_centerlines.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+
+[dependency-groups]
+dev = ["pytest"]

@@ -1,6 +1,0 @@
-click
-Fiona>=1.7.0
-networkx>=2.1
-scipy>=0.17
-Shapely>=1.5
-tqdm
