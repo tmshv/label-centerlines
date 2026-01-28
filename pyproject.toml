@@ -27,7 +27,7 @@ label_centerlines = "label_centerlines.cli:main"
 testpaths = ["test"]
 
 [dependency-groups]
-dev = ["pytest", "ruff"]
+dev = ["pytest", "ruff", "ty"]
 
 [tool.ruff]
 line-length = 88
