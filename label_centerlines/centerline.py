@@ -1,13 +1,24 @@
 import logging
 import operator
+from collections.abc import Generator, Sequence
 from itertools import combinations
+from typing import Literal, overload
 
 import networkx as nx
 import numpy as np
 from networkx.exception import NetworkXNoPath
+from numpy.typing import NDArray
 from scipy.ndimage import gaussian_filter1d
 from scipy.spatial import Voronoi
-from shapely.geometry import LineString, MultiLineString, MultiPoint, Point
+from shapely.geometry import (
+    LinearRing,
+    LineString,
+    MultiLineString,
+    MultiPoint,
+    MultiPolygon,
+    Point,
+    Polygon,
+)
 
 from label_centerlines.exceptions import CenterlineError
 
@@ -15,13 +26,13 @@ logger = logging.getLogger(__name__)
 
 
 def get_centerline(
-    geom,
-    segmentize_maxlen=0.5,
-    max_points=3000,
-    simplification=0.05,
-    smooth_sigma=5,
-    max_paths=5,
-):
+    geom: Polygon | MultiPolygon,
+    segmentize_maxlen: float = 0.5,
+    max_points: int = 3000,
+    simplification: float = 0.05,
+    smooth_sigma: float = 5,
+    max_paths: int = 5,
+) -> LineString | MultiLineString:
     """
     Return centerline from geometry.
 
@@ -103,7 +114,7 @@ def get_centerline(
     elif geom.geom_type == "MultiPolygon":
         logger.debug("MultiPolygon found with %s sub-geometries", len(geom.geoms))
         # get centerline for each part Polygon and combine into MultiLineString
-        sub_centerlines = []
+        sub_centerlines: list[LineString | MultiLineString] = []
         for subgeom in geom.geoms:
             try:
                 sub_centerline = get_centerline(
@@ -120,17 +131,13 @@ def get_centerline(
 
     else:
         raise TypeError(
-            "Geometry type must be Polygon or MultiPolygon, not %s" % geom.geom_type
+            f"Geometry type must be Polygon or MultiPolygon, not {geom.geom_type}"
         )
 
 
-# helper functions #
-####################
-
-
-def _segmentize(geom, max_len):
+def _segmentize(geom: LinearRing, max_len: float) -> LineString:
     """Interpolate points on segments if they exceed maximum length."""
-    points = []
+    points: list[tuple[float, float]] = []
     for previous, current in zip(geom.coords, geom.coords[1:], strict=False):
         line_segment = LineString([previous, current])
         # add points on line segment if necessary
@@ -145,7 +152,7 @@ def _segmentize(geom, max_len):
     return LineString(points)
 
 
-def _smooth_linestring(linestring, smooth_sigma):
+def _smooth_linestring(linestring: LineString, smooth_sigma: float) -> LineString:
     """Use a gauss filter to smooth out the LineString coordinates."""
     return LineString(
         zip(
@@ -156,10 +163,12 @@ def _smooth_linestring(linestring, smooth_sigma):
     )
 
 
-def _get_longest_paths(nodes, graph, max_paths):
+def _get_longest_paths(
+    nodes: list[int], graph: nx.Graph, max_paths: int
+) -> list[list[int]]:
     """Return longest paths of all possible paths between a list of nodes."""
 
-    def _gen_paths_distances():
+    def _gen_paths_distances() -> Generator[tuple[float, list[int]], None, None]:
         for node1, node2 in combinations(nodes, r=2):
             try:
                 yield nx.single_source_dijkstra(
@@ -171,7 +180,9 @@ def _get_longest_paths(nodes, graph, max_paths):
     return [x for (y, x) in sorted(_gen_paths_distances(), reverse=True)][:max_paths]
 
 
-def _get_least_curved_path(paths, vertices):
+def _get_least_curved_path(
+    paths: list[list[int]], vertices: NDArray[np.floating]
+) -> list[int]:
     """Return path with smallest angles."""
     return min(
         zip(
@@ -183,31 +194,36 @@ def _get_least_curved_path(paths, vertices):
     )[1]
 
 
-def _get_path_angles_sum(path, vertices):
+def _get_path_angles_sum(path: Sequence[int], vertices: NDArray[np.floating]) -> float:
     """Return all angles between edges from path."""
-    return sum(
-        [
-            _get_absolute_angle(
-                (vertices[pre], vertices[cur]), (vertices[cur], vertices[nex])
-            )
-            for pre, cur, nex in zip(path[:-1], path[1:], path[2:], strict=False)
-        ]
+    return float(
+        sum(
+            [
+                _get_absolute_angle(
+                    (vertices[pre], vertices[cur]), (vertices[cur], vertices[nex])
+                )
+                for pre, cur, nex in zip(path[:-1], path[1:], path[2:], strict=False)
+            ]
+        )
     )
 
 
-def _get_absolute_angle(edge1, edge2):
+def _get_absolute_angle(
+    edge1: tuple[NDArray[np.floating], NDArray[np.floating]],
+    edge2: tuple[NDArray[np.floating], NDArray[np.floating]],
+) -> np.floating:
     """Return absolute angle between edges."""
     v1 = edge1[0] - edge1[1]
     v2 = edge2[0] - edge2[1]
     return abs(np.degrees(np.atan2(np.linalg.det([v1, v2]), np.dot(v1, v2))))
 
 
-def _get_end_nodes(graph):
+def _get_end_nodes(graph: nx.Graph) -> list[int]:
     """Return list of nodes with just one neighbor node."""
     return [i for i in graph.nodes() if len(list(graph.neighbors(i))) == 1]
 
 
-def _graph_from_voronoi(vor, geometry):
+def _graph_from_voronoi(vor: Voronoi, geometry: Polygon) -> nx.Graph:
     """Return networkx.Graph from Voronoi diagram within geometry."""
     graph = nx.Graph()
     for x, y, dist in _yield_ridge_vertices(vor, geometry, dist=True):
@@ -216,7 +232,7 @@ def _graph_from_voronoi(vor, geometry):
     return graph
 
 
-def _multilinestring_from_voronoi(vor, geometry):
+def _multilinestring_from_voronoi(vor: Voronoi, geometry: Polygon) -> MultiLineString:
     """Return MultiLineString geometry from Voronoi diagram."""
     return MultiLineString(
         [
@@ -226,7 +242,24 @@ def _multilinestring_from_voronoi(vor, geometry):
     )
 
 
-def _yield_ridge_vertices(vor, geometry, dist=False):
+@overload
+def _yield_ridge_vertices(
+    vor: Voronoi, geometry: Polygon, dist: Literal[True]
+) -> Generator[tuple[int, int, float], None, None]: ...
+
+
+@overload
+def _yield_ridge_vertices(
+    vor: Voronoi, geometry: Polygon, dist: Literal[False] = ...
+) -> Generator[tuple[int, int], None, None]: ...
+
+
+def _yield_ridge_vertices(
+    vor: Voronoi, geometry: Polygon, dist: bool = False
+) -> (
+    Generator[tuple[int, int, float], None, None]
+    | Generator[tuple[int, int], None, None]
+):
     """Yield Voronoi ridge vertices within geometry."""
     for x, y in vor.ridge_vertices:
         if x < 0 or y < 0:
