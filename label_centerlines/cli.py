@@ -1,11 +1,12 @@
-import click
 import concurrent.futures
-from contextlib import ExitStack
-import fiona
 import logging
-from shapely.geometry import shape, mapping
 import time
+from contextlib import ExitStack
+
+import click
+import fiona
 import tqdm
+from shapely.geometry import mapping, shape
 
 from label_centerlines import __version__, get_centerline
 from label_centerlines.exceptions import CenterlineError
@@ -44,31 +45,31 @@ logger = logging.getLogger(__name__)
 @click.option(
     "--max_points",
     type=int,
-    help="Number of points per geometry allowed before simplifying. " "(default: 3000)",
+    help="Number of points per geometry allowed before simplifying. (default: 3000)",
     default=3000,
 )
 @click.option(
     "--simplification",
     type=float,
-    help="Simplification threshold. " "(default: 0.05)",
+    help="Simplification threshold. (default: 0.05)",
     default=0.05,
 )
 @click.option(
     "--smooth",
     type=int,
-    help="Smoothness of the output centerlines. " "(default: 5)",
+    help="Smoothness of the output centerlines. (default: 5)",
     default=5,
 )
 @click.option(
     "--max_paths",
     type=int,
-    help="Number of longest paths used to create the centerlines. " "(default: 5)",
+    help="Number of longest paths used to create the centerlines. (default: 5)",
     default=5,
 )
 @click.option(
     "--output_driver",
     type=click.Choice(["GeoJSON", "GPKG"]),
-    help="Output format. " "(default: 'GeoJSON')",
+    help="Output format. (default: 'GeoJSON')",
     default="GeoJSON",
 )
 @click.option("--verbose", is_flag=True, help="show information on processed features")
@@ -123,9 +124,7 @@ def main(
             )
             for feature in src
         )
-        for task in tqdm.tqdm(
-            concurrent.futures.as_completed(tasks), disable=debug, total=len(src)
-        ):
+        for task in tqdm.tqdm(concurrent.futures.as_completed(tasks), disable=debug, total=len(src)):
             # output is split up into parts of single part geometries to meet
             # GeoPackage requirements
             for part in task.result():
@@ -141,9 +140,7 @@ def main(
                     tqdm.tqdm.write("%ss: %s" % (elapsed, feature["properties"]))
 
 
-def _feature_worker(
-    feature, segmentize_maxlen, max_points, simplification, smooth, max_paths
-):
+def _feature_worker(feature, segmentize_maxlen, max_points, simplification, smooth, max_paths):
     try:
         start = time.time()
         centerline = get_centerline(
@@ -162,7 +159,4 @@ def _feature_worker(
     if centerline.geom_type == "LineString":
         return [(dict(feature, geometry=mapping(centerline)), elapsed)]
     elif centerline.geom_type == "MultiLineString":
-        return [
-            (dict(feature, geometry=mapping(subgeom)), elapsed)
-            for subgeom in centerline.geoms
-        ]
+        return [(dict(feature, geometry=mapping(subgeom)), elapsed) for subgeom in centerline.geoms]
