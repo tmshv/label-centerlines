@@ -174,7 +174,11 @@ def _get_longest_paths(nodes, graph, max_paths):
 def _get_least_curved_path(paths, vertices):
     """Return path with smallest angles."""
     return min(
-        zip([_get_path_angles_sum(path, vertices) for path in paths], paths, strict=False),
+        zip(
+            [_get_path_angles_sum(path, vertices) for path in paths],
+            paths,
+            strict=False,
+        ),
         key=operator.itemgetter(0),
     )[1]
 
