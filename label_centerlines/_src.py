@@ -131,7 +131,7 @@ def get_centerline(
 def _segmentize(geom, max_len):
     """Interpolate points on segments if they exceed maximum length."""
     points = []
-    for previous, current in zip(geom.coords, geom.coords[1:]):
+    for previous, current in zip(geom.coords, geom.coords[1:], strict=False):
         line_segment = LineString([previous, current])
         # add points on line segment if necessary
         points.extend(
@@ -151,6 +151,7 @@ def _smooth_linestring(linestring, smooth_sigma):
         zip(
             np.array(gaussian_filter1d(linestring.xy[0], smooth_sigma)),
             np.array(gaussian_filter1d(linestring.xy[1], smooth_sigma)),
+            strict=False,
         )
     )
 
@@ -173,7 +174,7 @@ def _get_longest_paths(nodes, graph, max_paths):
 def _get_least_curved_path(paths, vertices):
     """Return path with smallest angles."""
     return min(
-        zip([_get_path_angles_sum(path, vertices) for path in paths], paths),
+        zip([_get_path_angles_sum(path, vertices) for path in paths], paths, strict=False),
         key=operator.itemgetter(0),
     )[1]
 
@@ -185,7 +186,7 @@ def _get_path_angles_sum(path, vertices):
             _get_absolute_angle(
                 (vertices[pre], vertices[cur]), (vertices[cur], vertices[nex])
             )
-            for pre, cur, nex in zip(path[:-1], path[1:], path[2:])
+            for pre, cur, nex in zip(path[:-1], path[1:], path[2:], strict=False)
         ]
     )
 
