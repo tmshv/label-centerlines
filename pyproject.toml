@@ -5,11 +5,15 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "click",
-    "fiona>=1.10.0",
     "networkx>=2.1",
     "scipy>=0.17",
     "shapely>=1.8",
+]
+
+[project.optional-dependencies]
+cli = [
+    "click",
+    "fiona>=1.10.0",
     "tqdm",
 ]
 
@@ -27,7 +31,7 @@ label_centerlines = "label_centerlines.cli:main"
 testpaths = ["test"]
 
 [dependency-groups]
-dev = ["pytest", "ruff", "ty"]
+dev = ["pytest", "ruff", "ty", "label-centerlines[cli]"]
 
 [tool.ruff]
 line-length = 88
