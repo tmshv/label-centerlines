@@ -102,9 +102,7 @@ def get_centerline(
         # get least curved path from the longest paths, smooth and
         # return as LineString
         centerline = _smooth_linestring(
-            LineString(
-                vor.vertices[_get_least_curved_path(longest_paths, vor.vertices)]
-            ),
+            LineString(vor.vertices[_get_least_curved_path(longest_paths, vor.vertices)]),
             smooth_sigma,
         )
         logger.debug("centerline: %s", centerline)
@@ -117,9 +115,7 @@ def get_centerline(
         sub_centerlines: list[LineString | MultiLineString] = []
         for subgeom in geom.geoms:
             try:
-                sub_centerline = get_centerline(
-                    subgeom, segmentize_maxlen, max_points, simplification, smooth_sigma
-                )
+                sub_centerline = get_centerline(subgeom, segmentize_maxlen, max_points, simplification, smooth_sigma)
                 sub_centerlines.append(sub_centerline)
             except CenterlineError as e:
                 logger.debug("subgeometry error: %s", e)
@@ -130,9 +126,7 @@ def get_centerline(
             raise CenterlineError("all subgeometries failed")
 
     else:
-        raise TypeError(
-            f"Geometry type must be Polygon or MultiPolygon, not {geom.geom_type}"
-        )
+        raise TypeError(f"Geometry type must be Polygon or MultiPolygon, not {geom.geom_type}")
 
 
 def _segmentize(geom: LinearRing, max_len: float) -> LineString:
@@ -141,12 +135,7 @@ def _segmentize(geom: LinearRing, max_len: float) -> LineString:
     for previous, current in zip(geom.coords, geom.coords[1:], strict=False):
         line_segment = LineString([previous, current])
         # add points on line segment if necessary
-        points.extend(
-            [
-                line_segment.interpolate(max_len * i).coords[0]
-                for i in range(int(line_segment.length / max_len))
-            ]
-        )
+        points.extend([line_segment.interpolate(max_len * i).coords[0] for i in range(int(line_segment.length / max_len))])
         # finally, add end point
         points.append(current)
     return LineString(points)
@@ -163,26 +152,20 @@ def _smooth_linestring(linestring: LineString, smooth_sigma: float) -> LineStrin
     )
 
 
-def _get_longest_paths(
-    nodes: list[int], graph: nx.Graph, max_paths: int
-) -> list[list[int]]:
+def _get_longest_paths(nodes: list[int], graph: nx.Graph, max_paths: int) -> list[list[int]]:
     """Return longest paths of all possible paths between a list of nodes."""
 
     def _gen_paths_distances() -> Generator[tuple[float, list[int]], None, None]:
         for node1, node2 in combinations(nodes, r=2):
             try:
-                yield nx.single_source_dijkstra(
-                    G=graph, source=node1, target=node2, weight="weight"
-                )
+                yield nx.single_source_dijkstra(G=graph, source=node1, target=node2, weight="weight")
             except NetworkXNoPath:
                 continue
 
     return [x for (y, x) in sorted(_gen_paths_distances(), reverse=True)][:max_paths]
 
 
-def _get_least_curved_path(
-    paths: list[list[int]], vertices: NDArray[np.floating]
-) -> list[int]:
+def _get_least_curved_path(paths: list[list[int]], vertices: NDArray[np.floating]) -> list[int]:
     """Return path with smallest angles."""
     return min(
         zip(
@@ -199,9 +182,7 @@ def _get_path_angles_sum(path: Sequence[int], vertices: NDArray[np.floating]) ->
     return float(
         sum(
             [
-                _get_absolute_angle(
-                    (vertices[pre], vertices[cur]), (vertices[cur], vertices[nex])
-                )
+                _get_absolute_angle((vertices[pre], vertices[cur]), (vertices[cur], vertices[nex]))
                 for pre, cur, nex in zip(path[:-1], path[1:], path[2:], strict=False)
             ]
         )
@@ -235,31 +216,21 @@ def _graph_from_voronoi(vor: Voronoi, geometry: Polygon) -> nx.Graph:
 def _multilinestring_from_voronoi(vor: Voronoi, geometry: Polygon) -> MultiLineString:
     """Return MultiLineString geometry from Voronoi diagram."""
     return MultiLineString(
-        [
-            LineString([Point(vor.vertices[[x, y]][0]), Point(vor.vertices[[x, y]][1])])
-            for x, y in _yield_ridge_vertices(vor, geometry)
-        ]
+        [LineString([Point(vor.vertices[[x, y]][0]), Point(vor.vertices[[x, y]][1])]) for x, y in _yield_ridge_vertices(vor, geometry)]
     )
 
 
 @overload
-def _yield_ridge_vertices(
-    vor: Voronoi, geometry: Polygon, dist: Literal[True]
-) -> Generator[tuple[int, int, float], None, None]: ...
+def _yield_ridge_vertices(vor: Voronoi, geometry: Polygon, dist: Literal[True]) -> Generator[tuple[int, int, float], None, None]: ...
 
 
 @overload
-def _yield_ridge_vertices(
-    vor: Voronoi, geometry: Polygon, dist: Literal[False] = ...
-) -> Generator[tuple[int, int], None, None]: ...
+def _yield_ridge_vertices(vor: Voronoi, geometry: Polygon, dist: Literal[False] = ...) -> Generator[tuple[int, int], None, None]: ...
 
 
 def _yield_ridge_vertices(
     vor: Voronoi, geometry: Polygon, dist: bool = False
-) -> (
-    Generator[tuple[int, int, float], None, None]
-    | Generator[tuple[int, int], None, None]
-):
+) -> Generator[tuple[int, int, float], None, None] | Generator[tuple[int, int], None, None]:
     """Yield Voronoi ridge vertices within geometry."""
     for x, y in vor.ridge_vertices:
         if x < 0 or y < 0:

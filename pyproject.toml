@@ -34,7 +34,7 @@ testpaths = ["test"]
 dev = ["pytest", "ruff", "ty", "label-centerlines[cli]"]
 
 [tool.ruff]
-line-length = 88
+line-length = 150
 exclude = ["test/testdata/syntax_error.py"]
 
 [tool.ruff.lint]

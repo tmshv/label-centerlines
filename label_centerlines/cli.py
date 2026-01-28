@@ -124,9 +124,7 @@ def main(
             )
             for feature in src
         )
-        for task in tqdm.tqdm(
-            concurrent.futures.as_completed(tasks), disable=debug, total=len(src)
-        ):
+        for task in tqdm.tqdm(concurrent.futures.as_completed(tasks), disable=debug, total=len(src)):
             # output is split up into parts of single part geometries to meet
             # GeoPackage requirements
             for part in task.result():
@@ -142,9 +140,7 @@ def main(
                     tqdm.tqdm.write("%ss: %s" % (elapsed, feature["properties"]))
 
 
-def _feature_worker(
-    feature, segmentize_maxlen, max_points, simplification, smooth, max_paths
-):
+def _feature_worker(feature, segmentize_maxlen, max_points, simplification, smooth, max_paths):
     try:
         start = time.time()
         centerline = get_centerline(
@@ -163,7 +159,4 @@ def _feature_worker(
     if centerline.geom_type == "LineString":
         return [(dict(feature, geometry=mapping(centerline)), elapsed)]
     elif centerline.geom_type == "MultiLineString":
-        return [
-            (dict(feature, geometry=mapping(subgeom)), elapsed)
-            for subgeom in centerline.geoms
-        ]
+        return [(dict(feature, geometry=mapping(subgeom)), elapsed) for subgeom in centerline.geoms]
