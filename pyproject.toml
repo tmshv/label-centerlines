@@ -27,4 +27,15 @@ label_centerlines = "label_centerlines.cli:main"
 testpaths = ["test"]
 
 [dependency-groups]
-dev = ["pytest"]
+dev = ["pytest", "ruff"]
+
+[tool.ruff]
+line-length = 88
+exclude = ["test/testdata/syntax_error.py"]
+
+[tool.ruff.lint]
+select = ["B", "C90", "E", "F", "W", "T10"]
+ignore = ["E203", "E266", "E501", "F403", "F401", "E741"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 18
